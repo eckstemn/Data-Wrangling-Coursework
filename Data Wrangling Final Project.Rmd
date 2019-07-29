@@ -1,0 +1,19 @@
+---
+title: "Data Wrangling Midterm Project"
+author: "Megan Eckstein"
+date: "3/24/2019"
+output: html_document
+---
+
+```{r}
+library(readr)
+```
+
+
+
+```{r}
+snap <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B09010_SSI-PA-SNAP.csv")
+grandparent <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B10051_grandparent.csv")
+retirement_income <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B19059_retirement-income.csv")
+```
+
