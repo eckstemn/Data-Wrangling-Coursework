@@ -1,0 +1,163 @@
+---
+title: Project Proposal
+author: Megan Eckstein
+output: html_document
+---
+
+## Midterm Project {.tabset}
+
+### Problem Statement
+Using American Community Survey data, I would like to assess the economic health of different states within the United States.  There are often many different indicators of economic health and the ACS data contains many of those.  Some of the factors that I will pay special attention to include:
+
+* Unemployment Rate
+* Poverty Rate
+* Income Per Capita Estimate
+* Health Insurance Rate (for citizens)
+* Rate of Citizens living in a household with Social Security Income
+
+After assessing these rates by state, I will pinpoint states with the highest and lowest rates of these factors.  If the states with the lowest and highest rates are consistent, then we can evaluate the practices of those states to determine why the economic health of a particular state is so high or low.  This could mean looking into programs that encourage employment, programs that help with poverty, etc.  By identifying states with poor and good economic health, we can determine which states should implement different programs and which are already doing well.  This could be useful across states in the U.S. to help their governments evaluate their economic well-being.
+
+
+### Packages Required
+```{r, message = FALSE, warning=FALSE}
+library(readr) # used to import data
+library(plyr) # data manipulation
+library(dplyr) # used for data manipulation
+library(ggplot2) # used for data visualization
+library(knitr) # used for displaying data in table
+library(kableExtra) # used for making nice tables
+library(rmarkdown) # used for the clickable tabs
+```
+
+
+### Data Preparation
+The data being used is the 2015 American Community Survey data, which is a combination of [FactFinder data](https://factfinder.census.gov/faces/nav/jsf/pages/index.xhtml) (at the county level) and the United States Census Bureau [2015 ACS Five Year Estimates](https://www.census.gov/programs-surveys/acs/technical-documentation/table-and-geography-changes/2015/5-year.html).  This data has been collected by the US Census Bureau to help determine how federal funding should be spent each year.
+
+Reading in the Data
+```{r, message = FALSE}
+snap <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B09010_SSI-PA-SNAP.csv")
+grandparent <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B10051_grandparent.csv")
+retirement_income <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B19059_retirement-income.csv")
+owner_occupied <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B25003_owner-occupied.csv")
+median_gross_rent <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_B25064_median-gross-rent.csv")
+county_dat <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_county_data.csv")
+marital_status <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_s1021_marital-status.csv")
+births_last_12 <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S1301_women-with-births-last-12-months.csv")
+private_school <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S1401_percent-public-private-school.csv")
+bach_deg <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S1501_percent-hsgrad-bachelordegree.csv")
+language <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S1601_percent-speak-onlyenglish-otherthanenglish.csv")
+disability <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S1810_percent-with-disability.csv")
+veterans <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S2101_percent-veterans.csv")
+insured <- read_csv("/Users/MeganEckstein/Documents/2019SpringSemester/DataWrangling/acs_2015/acs2015_S2701_percent-insured.csv")
+```
+Using files downloaded from the ACS and FactFinder website, I import the data into separate data frames.
+
+```{r}
+# Join the data into one usable dataframe
+ACS <- join_all(list(snap,grandparent,retirement_income,owner_occupied,median_gross_rent, 
+                     marital_status, births_last_12, private_school, bach_deg, language, disability, veterans, insured), by=c('Id2', 'Id', 'Geography'), type='left')
+
+# Change the name of "CensusId" to "Id2" so that it will match the other data frames
+colnames(county_dat)[colnames(county_dat)=="CensusId"] <- "Id2"
+
+# Merge the data
+ACS2 <- merge(ACS, county_dat, by = "Id2")
+
+# Create a Percentage because all other factors used are rates
+ACS3 <- ACS2 %>% 
+  mutate(PercentSSI = SSI_PA_SNAP / TotalPop)
+```
+This data frame contains 3142 observations with 60 variables.  This contains information about economic, race/ethnicity, education, employment, marital status, and other kinds of information about the people living in each county.  
+
+After joining the data, I remove some of the columns that are either unnecessary to the problem statement or have repeated information.
+```{r}
+# select variables that are used in answering my problem statement
+ACS4 <- ACS3 %>%
+  select(c(State, County, PercentSSI, PercentInsured, IncomePerCap, IncomePerCapErr, Poverty, Unemployment))
+
+```
+
+This is what the updated data frame looks like:
+```{r}
+kable(ACS4, caption = "The Cleaned ACS Dataset") %>% 
+      kable_styling() %>%
+  scroll_box(width = "800px", height = "500px")
+```
+This data contains 3142 observations with 8 variables.  
+
+Luckily, the data looks very clean as is, so we do not have to impute data or remove observations.
+
+The summary statistics are shown below and their distirbutions can be displayed with boxplots.
+State and County are both categorical variables so we cannot see summaries of these.  The rest of the variables have the following distributions:
+
+```{r}
+ggplot(ACS4, aes(y = PercentSSI)) + geom_boxplot() + xlab("Percent of Households with Social Security Income")
+```
+
+* Percentage of Households with SSI: 
+    + Min: 0
+    + 1stQuartile: 0.0464
+    + Median: 0.06459
+    + 3rd Quartile: 0.0837
+    + Max: 0.3003
+    
+The distribution of the SSI rate is positively skewed with some outliers.  It will be interesting to pinpoint which counties represent these outlying values.
+    
+```{r}
+ggplot(ACS4, aes(y = PercentInsured)) + geom_boxplot() + xlab("Percentage of Citizens with Health Insurance")
+```
+
+* Percentage of Citizens with Insurance:
+    + Min: 43.7
+    + 1stQuartile: 83.60
+    + Median: 87.1
+    + 3rd Quartile: 90.60
+    + Max: 98.20
+
+The rate of citizens with health insurance is negatively skewed with many outliers at the bottom of the boxplot.
+
+```{r}
+ggplot(ACS4, aes(y = IncomePerCap)) + geom_boxplot() + xlab("Income Per Capita")
+```
+
+* Income Per Capita:
+    + Min: 8292
+    + 1stQuartile: 20471
+    + Median: 23577
+    + 3rd Quartile: 27138
+    + Max: 65600
+
+As income distributions often are, income per capita is positively skewed with many outliers on the upper part of the boxplot and a few outliers at the bottom.
+
+```{r}
+ggplot(ACS4, aes(y = Poverty)) + geom_boxplot() + xlab("Poverty Rate")
+```
+
+  
+* Poverty Rate:
+    + Min: 1.4
+    + 1stQuartile: 12.0
+    + Median: 16.0
+    + 3rd Quartile: 20.3
+    + Max: 53.3
+    
+Poverty Rate is also positively skewed with some outlying values.
+
+```{r}
+ggplot(ACS4, aes(y = Unemployment)) + geom_boxplot() + xlab("Unemployment Rate")
+
+```
+
+* Unemployment Rate: 
+    + Min: 0
+    + 1stQuartile: 5.5
+    + Median: 7.5
+    + 3rd Quartile: 9.7
+    + Max: 29.4
+    
+Similarly to many of the other variables, unemployment rate is positively skewed.  
+
+
+### Proposed EDA
+While this data is currently categorized by counties, I want to look at the data at the state level so that I can identify states with high and low rates of these economic factors.  This means that I will group the data at the state level.  I will then make heat maps by state to easily visualize the rates for each of these states.  I will make these for all of the individual factors specified in the problem statement and I would also like to make a heat map that encompasses all of those factors.  However, I am not quite sure how I would go about doing that.  I may create a calculated total column with all of the percentages of the economic factors, but I will also brainstorm other ways that I could do this.  I also would like to make a predictive model using linear regression to predict one of the factors mentioned - perhaps, unemployment rate.  This may mean including more predictive variables from the original merged dataset.  
+
